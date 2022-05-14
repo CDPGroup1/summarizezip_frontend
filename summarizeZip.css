@@ -1,0 +1,140 @@
+html[data-summarizeZip-active='true'] body {
+  margin-left: 350px !important;
+  padding-left: 0 !important;
+  position: relative !important;
+  width: auto;
+}
+
+#summarizeZipWrapper {
+  position: fixed !important;
+  height: 100% !important;
+  margin: 0 !important;
+  left: 0 !important;
+  z-index: 100000 !important;
+  overflow: auto !important;
+  background: #f2f2f2 !important;
+  width: 350px !important;
+  box-shadow: 0 0 5px rgba(50, 50, 50, 0.7) !important;
+  box-sizing: border-box;
+  padding: 50px 30px;
+}
+
+.closeButton {
+  position: absolute;
+  right: 7px;
+  top: 10px;
+
+  border: 0;
+  cursor: pointer;
+}
+
+.closeButton > img:hover {
+  transition-duration: 0.5s;
+  filter: brightness(1.1);
+}
+
+.mainSection {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  width: 290px;
+}
+
+.imageContainer {
+  display: flex;
+  flex-direction: row;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 20px;
+  color: #868484;
+}
+
+.summarizeArea {
+  margin-top: 50px;
+  width: 250px;
+  min-height: 200px;
+
+  background-color: white;
+
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.summarizeResult {
+  list-style: none;
+  padding: 0;
+
+  font-weight: bold;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.summarizeResult > li:nth-child(1):before {
+  content: '1.';
+  margin-right: 7px;
+}
+
+.summarizeResult > li:nth-child(1) {
+  margin-bottom: 20px;
+}
+
+.summarizeResult > li:nth-child(2):before {
+  content: '2.';
+  margin-right: 7px;
+}
+
+.summarizeResult > li:nth-child(2) {
+  margin-bottom: 20px;
+}
+
+.summarizeResult > li:nth-child(3):before {
+  content: '3.';
+  margin-right: 7px;
+}
+
+.totalSummarize {
+  width: 150px;
+  height: 50px;
+  font-weight: bold;
+
+  margin-top: 50px;
+  filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
+
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  background-color: #5ca0a1;
+}
+
+.pageTitle {
+  margin: 30px;
+  line-height: 1.5;
+}
+
+.summarizeText {
+  margin: 20px;
+  line-height: 1.5;
+}
+
+.summarizeText:first-letter {
+  font-size: 30px;
+}
+
+.summarize_fail {
+  margin: 30px;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.siteImg {
+  margin: 30px;
+  object-fit: cover;
+}
+
+.alarm {
+  margin: 20px;
+  font-size: 20px;
+}
