@@ -133,3 +133,8 @@ html[data-summarizeZip-active='true'] body {
   margin: 30px;
   object-fit: cover;
 }
+
+.alarm {
+  margin: 20px;
+  font-size: 20px;
+}

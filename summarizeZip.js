@@ -1,4 +1,5 @@
 (() => {
+  var s = '';
   let summarizedMessage = '';
   const summarizeFail = () => {
     let summarizeResult = false;
@@ -7,8 +8,44 @@
       return 1;
     }
   };
+  const textFilter = () => {
+    let numberFilter = /[0-9]/;
+    let englishFilter = /[a-zA-Z]/;
+    let hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+    let specialFilter = /[~!@#\#$%<>^&*]/;
+
+    let numberSum = 0;
+    let englishSum = 0;
+    let hangulSum = 0;
+    let specialSum = 0;
+
+    let newsText = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
+    for (let i = 0; i < newsText.length; i++) {
+      if (newsText[i].match(numberFilter)) {
+        numberSum += 1;
+      } else if (newsText[i].match(englishFilter)) {
+        englishSum += 1;
+      } else if (newsText[i].match(hangulFilter)) {
+        hangulSum += 1;
+      } else if (newsText[i].match(specialFilter)) {
+        specialSum += 1;
+      }
+    }
+
+    console.log(numberSum);
+    console.log(englishSum);
+    console.log(hangulSum);
+    console.log(specialSum);
+
+    if (hangulSum > englishSum) {
+      alert('한글로 번역');
+    } else {
+      alert('영어로 번역');
+    }
+  };
   const summary1 = async () => {
-    const text = document.querySelector('#dic_area').innerText;
+    textFilter();
+    const text = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
     console.log(text);
     const bodyData = { content: text };
     try {
@@ -21,11 +58,13 @@
       });
 
       const data = await res.json();
-      let summary_data = data.summary;
-      let new_summary_data = summary_data.split('\n');
-      new_summary_data.forEach((a, i) => {
+      let summaryData = data.summary;
+      summaryData = summaryData.split('\n');
+      summaryData.forEach((a, i) => {
         summarizedMessage += `${i + 1} ${a}` + '\n';
       });
+      s = summarizedMessage;
+      console.log(s);
       chrome.storage.local.set(
         {
           key: summarizedMessage,
@@ -36,6 +75,7 @@
       throw new Error(error);
     }
   };
+
   const $summarizeZipWrapper = document.getElementById('summarizeZipWrapper');
 
   const isWrapperExisted = selector => selector !== null;
@@ -43,20 +83,13 @@
   // 익스텐션 클릭시 왼쪽 화면에서 나옴
   const getWidget = () => {
     let sum = '';
+
     summary1();
+
     chrome.storage.local.get(['key'], function (result) {
-      let imageSrc = document.body.querySelector('#img1').src;
+      let imageSrc = document.querySelector("meta[property='og:image']").getAttribute('content');
       let image = ``;
-      if (imageSrc) {
-        image = `<img
-          class = "siteImg"
-          src= ${imageSrc}
-          width="200px"
-          height="200px"
-        />`;
-      } else {
-        image = null;
-      }
+
       sum += result.key;
       let sum1 = sum.split('.');
       const $html = document.documentElement;
@@ -66,77 +99,73 @@
       const titleCandidate1 = document.body.querySelector('h1')?.textContent.trim();
       const titleCandidate2 = document.body.querySelector('h2')?.textContent.trim();
 
-      const title_candidate1 = document.body.querySelector('#ct_wrap').querySelector('h1')?.textContent.trim();
-      const title_candidate2 = document.body.querySelector('#ct_wrap').querySelector('h2')?.textContent.trim();
       let title = '';
-      if (title_candidate1) {
-        title = title_candidate1;
-      } else {
-        title = title_candidate2;
-      }
+
       const $div = document.createElement('div');
       $div.setAttribute('id', 'summarizeZipWrapper');
       // 정상적으로 동작하면 li태그, 아니면 오류 표시
       let template = ``;
+      let alarmMessage = '';
       if (!summarizeFail) {
-        template = `
-    <button class="closeButton" aria-label="닫기">
-    <img
-      src="https://user-images.githubusercontent.com/53992007/166632199-9962060b-7681-4aca-8fac-db72a8063853.png"
-      alt="닫기"
-      width="20"
-      height="20"
-    />
-    </button>
-    <div class="successUI"></div>
-    <div class="failureUI"></div>
-    <div class="paragraphSummarize">
-      <div class="mainSection">
-        <div class="imageContainer">
-          <img src="https://user-images.githubusercontent.com/53992007/166511131-eac4ed0d-0225-4ed1-8bc5-30221f5e5f91.png" alt="summarizeZip" width="40" />
-        </div>
-        <h1 style='margin : 20px;'>요약을 할 수 없습니다 :(</h1>
-        <span class="summarize_fail">직접 문단을 선택해서 요약해보세요</span>
-        <button class="totalSummarize">문단 요약</button>
-      </div>
-    </div>
-    `;
+        alarmMessage = '요약을 할 수 없습니다 :(';
       } else {
-        template = `
-    <button class="closeButton" aria-label="닫기">
-    <img
-      src="https://user-images.githubusercontent.com/53992007/166632199-9962060b-7681-4aca-8fac-db72a8063853.png"
-      alt="닫기"
-      width="20"
-      height="20"
-    />
-    </button>
-      ${image}
-    
-    <div class="successUI"></div>
-    <div class="failureUI"></div>
-    <div class="paragraphSummarize">
-      <div class="mainSection">
-        <div class="imageContainer">
-          <img src="https://user-images.githubusercontent.com/53992007/166511131-eac4ed0d-0225-4ed1-8bc5-30221f5e5f91.png" alt="summarizeZip" width="40" />
-          
-          <span>요약된 결과를 확인하세요!</span>
-          
-        </div>
-        <h2 class="pageTitle">${title}</h2>
-        <div class="summarizeArea">
-          <ul class="summarizeResult">
+        if (titleCandidate1) {
+          title = titleCandidate1;
+        } else {
+          title = titleCandidate2;
+        }
+        alarmMessage = '요약된 결과를 확인하세요!';
+        if (imageSrc) {
+          image = `<img
+            class = "siteImg"
+            src= ${imageSrc}
+            width="200px"
+            height="200px"
+            style="object-fit:contain"
+          />`;
+        } else {
+          image = null;
+        }
+      }
+      template = `
+      <button class="closeButton" aria-label="닫기">
+      <img
+        src="https://user-images.githubusercontent.com/53992007/166632199-9962060b-7681-4aca-8fac-db72a8063853.png"
+        alt="닫기"
+        width="20"
+        height="20"
+      />
+      </button>
+      ${image ? image : ''}
+
+      <div class="successUI"></div>
+      <div class="failureUI"></div>
+      <div class="paragraphSummarize">
+        <div class="mainSection">
+          <div class="imageContainer">
+            <img src="https://user-images.githubusercontent.com/53992007/166511131-eac4ed0d-0225-4ed1-8bc5-30221f5e5f91.png" alt="summarizeZip" width="40" />
+            
+          </div>
+          <h2 class="alarm">${alarmMessage}</h2>
+          <h2 class="pageTitle">${title}</h2>
+          <div class="summarizeArea">
+          ${
+            summarizeFail
+              ? ` <ul class="summarizeResult">
           <h5 class="summarizeText">${sum1[0]}</h5>
           <h5 class="summarizeText">${sum1[1]}</h5>
           <h5 class="summarizeText">${sum1[2]}</h5>
-          </ul>
-          
+          <h5>${s}</h5>
+          </ul>`
+              : ''
+          }
+           
+            
+          </div>
+          <button class="totalSummarize">문단 요약</button>
         </div>
-        <button class="totalSummarize">문단 요약</button>
       </div>
-    </div>
-    `;
-      }
+      `;
 
       $div.insertAdjacentHTML('afterbegin', template);
 
