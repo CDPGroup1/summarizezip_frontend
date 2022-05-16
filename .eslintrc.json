@@ -17,6 +17,7 @@
     // "error" or 2 - turn the rule on as an error (exit code is 1 when triggered)
     // "no-var": "off",
     "no-console": "warn",
+    "no-undef": "off",
     "no-plusplus": "off",
     "no-shadow": "off",
     "vars-on-top": "off",

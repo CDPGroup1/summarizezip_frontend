@@ -1,7 +1,7 @@
 let tabId;
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.set({
+  chrome.storage.local.set({
     leftCount: 5,
   });
 });
@@ -12,6 +12,10 @@ const injectSummarizeZip = async tab => {
   await chrome.scripting.executeScript({
     target: { tabId },
     files: ['summarizeZip.js'],
+  });
+
+  chrome.storage.local.set({
+    isOpen: true,
   });
 
   await chrome.scripting.insertCSS({
