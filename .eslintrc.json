@@ -17,6 +17,7 @@
     // "error" or 2 - turn the rule on as an error (exit code is 1 when triggered)
     // "no-var": "off",
     "no-console": "warn",
+    "no-undef": "off",
     "no-plusplus": "off",
     "no-shadow": "off",
     "vars-on-top": "off",
@@ -32,6 +33,7 @@
     "require-await": "error",
     "arrow-parens": ["error", "as-needed"], // a => {}
     "no-param-reassign": ["error", { "props": false }],
+    "no-use-before-define": "off",
     "no-unused-expressions": [
       "error",
       {
