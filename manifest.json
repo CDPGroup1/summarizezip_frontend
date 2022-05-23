@@ -27,5 +27,6 @@
       "matches": ["*://*/*"],
       "js": ["node_modules/@webcomponents/custom-elements/custom-elements.min.js", "contentScript.js"]
     }
-  ]
+  ],
+  "options_page": "options.html"
 }

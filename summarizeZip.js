@@ -45,6 +45,17 @@
       throw new Error(error);
     }
   };
+  // const getUserSentence = async () => {
+  //   let sentence;
+  //   let a = await chrome.storage.local.get(['userSentence'], data => {
+  //     sentence = data.userSentence;
+  //   });
+  //   await a.then(value => {
+  //     console.log(value);
+  //   });
+  //   console.log(sentence);
+  //   return sentence;
+  // };
   // DOM 가져오는 util 함수
   const $ = selector => document.querySelector(selector);
 
@@ -105,6 +116,13 @@
 
   // 전체 요약
   const fullSummary = async () => {
+    // let userSentence;
+    // const user = getUserSentence();
+    // await user.then(value => {
+    //   userSentence = value;
+    //   console.log(userSentence);
+    // });
+    // console.log(userSentence);
     // nodejs로 번역 보내는 텍스트
     let sendText;
     // 파이썬으로 가져온 본문
@@ -113,6 +131,7 @@
     let translateResult;
     const extractText = pythonSummary();
     await extractText.then(value => {
+      // nodejs에서 answer라는 값으로 보냄
       pythonResult = value.answer;
     });
     // 한글
@@ -121,10 +140,12 @@
     } // 영어
     else {
       translateResult = translate(pythonResult);
+      console.log('영어');
       await translateResult.then(value => {
         sendText = value;
       });
     }
+    console.log(sendText);
     const title = document.querySelector("meta[property='og:title']")?.getAttribute('content');
     const bodyData = { title, content: sendText };
     try {
