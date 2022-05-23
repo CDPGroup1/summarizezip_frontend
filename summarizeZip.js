@@ -1,9 +1,9 @@
 (() => {
-  const summary2 = async () => {
-    let mainText;
+  const pythonSummary = async () => {
+    let mainText; //파이썬파일에서 가져온 본문
 
     const { href: url } = window.location;
-    const postData1 = {
+    const postData = {
       url,
     };
     try {
@@ -12,17 +12,36 @@
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(postData1),
+        body: JSON.stringify(postData),
       });
       if (!res.ok) throw new Error('res ok 문제 발생');
       mainText = await res.json();
+      return mainText;
     } catch (error) {
       throw new Error(error);
     }
-    console.log(mainText.answer);
   };
-  summary2();
 
+  const translate = async pythonResult => {
+    let translateResult;
+    const postData = {
+      text: pythonResult,
+    };
+    try {
+      const res = await fetch('http://localhost:3000/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
+      if (!res.ok) throw new Error('res ok 문제 발생');
+      translateResult = await res.json();
+      return translateResult;
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
   // DOM 가져오는 util 함수
   const $ = selector => document.querySelector(selector);
 
@@ -52,7 +71,7 @@
     return 1;
   };
 
-  const getLanguage = () => {
+  const checkLanguage = pythonResult => {
     const numberFilter = /[0-9]/;
     const englishFilter = /[a-zA-Z]/;
     const hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
@@ -62,16 +81,14 @@
     let englishSum = 0;
     let hangulSum = 0;
     let specialSum = 0;
-
-    const newsText = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
-    for (let i = 0; i < newsText.length; i++) {
-      if (newsText[i].match(numberFilter)) {
+    for (let i = 0; i < pythonResult.length; i++) {
+      if (pythonResult[i].match(numberFilter)) {
         numberSum += 1;
-      } else if (newsText[i].match(englishFilter)) {
+      } else if (pythonResult[i].match(englishFilter)) {
         englishSum += 1;
-      } else if (newsText[i].match(hangulFilter)) {
+      } else if (pythonResult[i].match(hangulFilter)) {
         hangulSum += 1;
-      } else if (newsText[i].match(specialFilter)) {
+      } else if (pythonResult[i].match(specialFilter)) {
         specialSum += 1;
       }
     }
@@ -82,13 +99,23 @@
     return 0;
   };
   const summary1 = async () => {
-    if (getLanguage()) {
-      console.log('한글');
+    let sendText;
+    let pythonResult;
+    let translateResult;
+    const mainText = pythonSummary();
+    await mainText.then(value => {
+      pythonResult = value.answer;
+    });
+    if (checkLanguage(pythonResult)) {
+      sendText = pythonResult;
     } else {
-      console.log('영어');
+      translateResult = translate(pythonResult);
+      await translateResult.then(value => {
+        sendText = value;
+      });
     }
-    const text = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
-    const bodyData = { content: text };
+    const title = document.querySelector("meta[property='og:title']")?.getAttribute('content');
+    const bodyData = { title, content: sendText };
     try {
       const res = await fetch('http://localhost:3000/api/summarize', {
         method: 'POST',
@@ -114,7 +141,7 @@
   class SuccessUI extends HTMLElement {
     constructor() {
       super();
-      this.l = '이름';
+      this.summarizeResult = '이름';
     }
 
     async connectedCallback() {
@@ -122,7 +149,7 @@
       const mainImgSrc = document.querySelector("meta[property='og:image']")?.getAttribute('content');
       const entireSummarize = summary1();
       await entireSummarize.then(value => {
-        this.l = value;
+        this.summarizeResult = value;
       });
       this.innerHTML = `
       <img class="mainImg" src=${
@@ -134,7 +161,7 @@
       </div>
       <h2 class="summarizeTitle" style = "line-height : 20px">${mainTitle}</h2>
         <ul class="totalSummarizeResult">
-          ${this.l}
+          ${this.summarizeResult}
         </ul>
 
       <button class="totalSentenceButton">문단 요약</button>
@@ -311,11 +338,8 @@
       console.log('ho');
     } else {
       console.log('hi');
-      if (IsPossibleSummarize()) {
-        getSuccessUI();
-      } else {
-        getFailureUI();
-      }
+      getSuccessUI();
+      // getFailureUI();
     }
   });
 })();
