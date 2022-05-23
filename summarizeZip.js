@@ -1,6 +1,9 @@
 (() => {
+  let summarizeResult;
+  // 파이썬 본문 탐지
   const pythonSummary = async () => {
-    let mainText; //파이썬파일에서 가져온 본문
+    // 파이썬파일에서 가져온 본문
+    let mainText;
 
     const { href: url } = window.location;
     const postData = {
@@ -63,52 +66,60 @@
     }
   };
 
-  const IsPossibleSummarize = () => {
-    const documentText = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
-    if (documentText.length > 2000 && documentText.length < 200) {
-      return 0;
-    }
-    return 1;
-  };
-
   const checkLanguage = pythonResult => {
-    const numberFilter = /[0-9]/;
-    const englishFilter = /[a-zA-Z]/;
-    const hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-    const specialFilter = /[~!@#$%<>^&*]/;
-
-    let numberSum = 0;
+    let koScore = 0;
+    let enScore = 0;
     let englishSum = 0;
     let hangulSum = 0;
-    let specialSum = 0;
-    for (let i = 0; i < pythonResult.length; i++) {
-      if (pythonResult[i].match(numberFilter)) {
-        numberSum += 1;
-      } else if (pythonResult[i].match(englishFilter)) {
+
+    const lang = document.documentElement.lang;
+    const contextLength = pythonResult.length;
+
+    if (lang === 'ko') {
+      koScore += 30;
+    } else if (lang === 'en') {
+      enScore += 30;
+    }
+
+    const englishFilter = /[a-zA-Z]/;
+    const hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+
+    for (let i = 0; i < contextLength; i++) {
+      if (pythonResult[i].match(englishFilter)) {
         englishSum += 1;
       } else if (pythonResult[i].match(hangulFilter)) {
         hangulSum += 1;
-      } else if (pythonResult[i].match(specialFilter)) {
-        specialSum += 1;
       }
     }
+    const contextSum = hangulSum + englishSum;
+    const hangulRatio = (hangulSum / contextSum) * 70;
+    const englishRatio = (englishSum / contextSum) * 70;
 
-    if (hangulSum > englishSum) {
+    if (koScore + hangulRatio > enScore + englishRatio) {
+      // 한글
       return 1;
     }
+    // 영어
     return 0;
   };
-  const summary1 = async () => {
+
+  // 전체 요약
+  const fullSummary = async () => {
+    // nodejs로 번역 보내는 텍스트
     let sendText;
+    // 파이썬으로 가져온 본문
     let pythonResult;
+    // 번역결과 텍스트
     let translateResult;
-    const mainText = pythonSummary();
-    await mainText.then(value => {
+    const extractText = pythonSummary();
+    await extractText.then(value => {
       pythonResult = value.answer;
     });
+    // 한글
     if (checkLanguage(pythonResult)) {
       sendText = pythonResult;
-    } else {
+    } // 영어
+    else {
       translateResult = translate(pythonResult);
       await translateResult.then(value => {
         sendText = value;
@@ -125,14 +136,20 @@
         body: JSON.stringify(bodyData),
       });
       const data = await res.json();
-      const splitData = data.summary.split('\n');
-      const summarizedMessage = `
+
+      if (data === 0) {
+        // 요약 불가능
+        return 0;
+      } else {
+        const splitData = data.summary.split('\n');
+        const summarizedMessage = `
           <li style="line-height: 20px;">${splitData[0] ? splitData[0] : ''}</li>
           <li style="line-height: 20px;">${splitData[1] ? splitData[1] : ''}</li>
           <li style="line-height: 20px;">${splitData[2] ? splitData[2] : ''}</li>
           `;
 
-      return summarizedMessage;
+        return summarizedMessage;
+      }
     } catch (error) {
       throw new Error(error);
     }
@@ -141,16 +158,13 @@
   class SuccessUI extends HTMLElement {
     constructor() {
       super();
-      this.summarizeResult = '이름';
+      this.summarizeResult = summarizeResult;
     }
 
     async connectedCallback() {
       const mainTitle = document.querySelector("meta[property='og:title']")?.getAttribute('content');
       const mainImgSrc = document.querySelector("meta[property='og:image']")?.getAttribute('content');
-      const entireSummarize = summary1();
-      await entireSummarize.then(value => {
-        this.summarizeResult = value;
-      });
+
       this.innerHTML = `
       <img class="mainImg" src=${
         mainImgSrc || 'https://usagi-post.com/wp-content/uploads/2020/05/no-image-found-360x250-1.png'
@@ -333,13 +347,21 @@
     if (!customElements.get('summary-paragraph')) customElements.define('summary-paragraph', ParagraphUI);
   };
 
-  chrome.storage.local.get(['isOpen'], data => {
+  chrome.storage.local.get(['isOpen'], async data => {
     if (data.isOpen) {
       console.log('ho');
     } else {
       console.log('hi');
-      getSuccessUI();
-      // getFailureUI();
+
+      const entireSummarize = fullSummary();
+      await entireSummarize.then(value => {
+        summarizeResult = value;
+      });
+      if (summarizeResult !== 0) {
+        getSuccessUI(summarizeResult);
+      } else {
+        getFailureUI();
+      }
     }
   });
 })();
@@ -352,7 +374,7 @@
 //   const getWidget = () => {
 //     let sum = '';
 
-//     summary1();
+//     fullSummary();
 
 //     chrome.storage.local.get(['key'], result => {
 //       const imageSrc = document.querySelector("meta[property='og:image']").getAttribute('content');
