@@ -1,0 +1,6 @@
+html[data-summarizeZip-active='true'] body {
+  margin-left: 350px !important;
+  padding-left: 0 !important;
+  position: relative !important;
+  width: auto;
+}
