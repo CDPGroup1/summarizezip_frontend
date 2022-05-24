@@ -447,7 +447,57 @@ window.addEventListener('load', () => {
     }
   }
 
+  function isPopUpToast(){
+    let _innerHTML  = document.documentElement.innerHTML;
+
+    let doc = new DOMParser().parseFromString(_innerHTML,'text/html');
+
+
+    unneccesaryTags = ['script', 'style','head','footer','header','link','iframe','a','em','button','image','svg','video'];
+
+    unneccesaryTags.forEach(Element => {
+    htmlTag = doc.querySelectorAll(Element);
+    htmlTag.forEach(Element => Element.remove());
+    });
+
+
+    let bodyText = doc.body.textContent;
+
+    var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"]/gi;
+
+    bodyText = bodyText.replace(regExp,""); //특수문자 제거
+    bodyText = bodyText.replace(/(\s*)/g, ""); // 공백 제거
+    
+    if(bodyText.length < 1000){
+      return false;
+    }
+    else return true;
+  }
+
+
   customElements.define('summarize-zip-alarm', SummarizeZipAlarm);
   customElements.define('summarize-zip', SummarizeZip);
-  customElements.define('summarize-zip-toast', Toast);
+  if(isPopUpToast()){
+    customElements.define('summarize-zip-toast', Toast);
+  }
+  
 });
+
+function temp(){
+  unneccesaryTags = ['script', 'style','head','footer','header','link','iframe','a','em','button','image','svg','video'];
+
+  unneccesaryTags.forEach(Element => {
+  htmlTag = document.querySelectorAll(Element);
+  htmlTag.forEach(Element => Element.remove());
+  });
+
+
+  let bodyText = document.body.innerText;
+
+  var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"]/gi;
+
+  bodyText = bodyText.replace(regExp,""); //특수문자 제거
+  bodyText = bodyText.replace(/(\s*)/g, ""); // 공백 제거
+
+  bodyText.length
+}
