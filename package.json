@@ -26,6 +26,8 @@
     "prettier": "2.6.2"
   },
   "dependencies": {
-    "@webcomponents/custom-elements": "^1.5.0"
+    "@webcomponents/custom-elements": "^1.5.0",
+    "fetch": "^1.1.0",
+    "node-fetch": "^3.2.4"
   }
 }

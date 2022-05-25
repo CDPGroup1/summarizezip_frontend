@@ -1,0 +1,7 @@
+{
+    "n.news.naver.com/mnews/article":["#media_end_head_headline","#dic_area"],
+    "n.news.naver.com/article" : ["#media_end_head_headline","#dic_area"],
+    "wikipedia.org/wiki" : ["#firstHeading","#mw-parser-text"],
+    "namu.wiki/w" : ["h1","#WMzq6UCa"],
+    "m.blog.naver.com" : [".se-title-text",".se-main-container"]
+}

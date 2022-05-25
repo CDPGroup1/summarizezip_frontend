@@ -447,37 +447,124 @@ window.addEventListener('load', () => {
     }
   }
 
-  function isPopUpToast(){
-    let _innerHTML  = document.documentElement.innerHTML;
+  async function isPopUpToast0(){
+    //화이트리스트 방식
+    let fullUrl = document.URL;
 
-    let doc = new DOMParser().parseFromString(_innerHTML,'text/html');
+    let whiteList;
 
+    await fetch("./whitelist.json")
+    .then(response => {
+      return response.json();
+    }).then(jsonData => {whiteList = jsonData})
 
+    fullUrl = fullUrl.replace('https://','');
+    urlQuery = fullUrl.split('/');
+    keyUrl = urlQuery[0] + '/' + urlQuery[1];
+
+    return (keyUrl in whiteList);
+  }
+
+  function isPopUpToast1(){ 
+    // 불필요한 태그 제거 후 body의 innerText의 length만 확인하는 방식
+    // 의외로 효과 좋음
+
+    let doc = document.documentElement.cloneNode(true);
+  
     unneccesaryTags = ['script', 'style','head','footer','header','link','iframe','a','em','button','image','svg','video'];
 
-    unneccesaryTags.forEach(Element => {
-    htmlTag = doc.querySelectorAll(Element);
-    htmlTag.forEach(Element => Element.remove());
+    unneccesaryTags.forEach(el => {
+      htmlTag = doc.getElementsByTagName(el);
+      htmlList = Array.from(htmlTag);
+      htmlList.forEach(element => element.remove());
+    });
+
+    let bodyText = doc.body.innerText;
+
+    var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
+
+    bodyText = bodyText.replace(regExp,""); //특수문자 제거(? ! . 는 살려두고)
+    bodyText = bodyText.replace(/(\s*)/g, ""); // 탭 엔터 제거
+
+    if(bodyText.length > 3000){
+      return true;
+    }else return false;
+  }
+
+  function isPopUpToast2(){
+    // 불필요한 태그 제거 후 body의 innerText에서 정상적인 문장들의 개수를 새어 본문의 존재를 확인하는 방식
+    // 구글 검색창에서도 작동하는 문제가 있음, 문장의 개수를 조금 더 보수적으로 잡아볼까 고민중
+
+    let doc = document.cloneNode(true);
+  
+    unneccesaryTags = ['script', 'style','head','footer','header','link','iframe','a','em','button','image','svg','video'];
+
+    unneccesaryTags.forEach(el => {
+      htmlTag = doc.getElementsByTagName(el);
+      htmlList = Array.from(htmlTag);
+      htmlList.forEach(element => element.remove());
     });
 
 
-    let bodyText = doc.body.textContent;
+    let bodyText = doc.body.innerText;
 
-    var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"]/gi;
+    var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
 
-    bodyText = bodyText.replace(regExp,""); //특수문자 제거
-    bodyText = bodyText.replace(/(\s*)/g, ""); // 공백 제거
-    
-    if(bodyText.length < 1000){
-      return false;
+    bodyText = bodyText.replace(regExp,""); //특수문자 제거(? ! . 는 살려두고)
+    bodyText = bodyText.replace(/(\t)/g, ""); // 탭 제거
+  
+    let bodyTextSplit = bodyText.split('\n');
+    let sentencenum = 0;
+  
+    bodyTextSplit.forEach(element => {
+      let lastElement = element.charAt(element.length - 1);
+      let wordnum = element.split(' ').length;
+      
+      if((lastElement == '.' ||lastElement == '?' ||lastElement == '!' || element.length > 300) && wordnum > 5){
+        let splitElement = element.split(/[.?!]/);
+
+        splitElement.forEach(stc => {
+          if(stc.split(' ').length > 5){
+            sentencenum++;
+          }
+        })
+      }
+    });
+
+    if(sentencenum > 40){
+      return true;
+    }else return false;
+  }
+
+  function isPopUpToast3(){ 
+    //document를 pre order traversal하면서 텍스트 노드간의 거리를 확인, 거리들의 표준편차를 확인하여 본문의 유무를 확인하는 방식
+    //가설 : 본문이 존재하는 페이지는  본문이 존재하지 않는 페이지보다 표준편차가 상대적으로 적게 잡힐 것이다
+    //아직 하는중..... 어려워요.......
+
+    const body = document.querySelector('body');
+    let distance = 0;
+    preOrder(body, distance);
+  }
+
+  function preOrder(distance){
+    const node = document.querySelector('body');
+
+    if(node.childElementCount > 0){
+      const childList = Array.from(node.children);
+      childList.forEach(el => preOrder(el))
+    }else{
+      let _tagName = node.tagName.toLowerCase;
+      if(_tagName == 'div' || _tagName == 'p' || _tagName == 'span')
+      if(node.innerText.split(' ').length > 5){
+        console.log(node.innerText);
+      }
     }
-    else return true;
   }
 
 
   customElements.define('summarize-zip-alarm', SummarizeZipAlarm);
   customElements.define('summarize-zip', SummarizeZip);
-  if(isPopUpToast()){
+  if(isPopUpToast0()){
     customElements.define('summarize-zip-toast', Toast);
   }
   
@@ -494,10 +581,54 @@ function temp(){
 
   let bodyText = document.body.innerText;
 
-  var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-+<>@\#$%&\\\=\(\'\"]/gi;
+  var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
 
-  bodyText = bodyText.replace(regExp,""); //특수문자 제거
-  bodyText = bodyText.replace(/(\s*)/g, ""); // 공백 제거
+  bodyText = bodyText.replace(regExp,""); //특수문자 제거(? ! . 는 살려두고)
+  bodyText = bodyText.replace(/(\t)/g, ""); // 탭 제거
 
-  bodyText.length
+  let bodyTextSplit = bodyText.split('\n');
+  let sentencenum = 0;
+
+  bodyTextSplit.forEach(element => {
+    let lastElement = element.charAt(element.length - 1);
+    let wordnum = element.split(' ').length;
+    
+    if((lastElement == '.' ||lastElement == '?' ||lastElement == '!' || element.length > 300) && wordnum > 5){
+      let splitElement = element.split(/[.?!]/);
+
+      splitElement.forEach(stc => {
+        if(stc.split(' ').length > 5){
+          sentencenum++;
+        }
+      })
+    }
+  });
+}
+
+function temp2(){
+  let list = [];
+  function preOrder(node,number){
+
+    if(node.childElementCount > 0){
+      const childList = Array.from(node.children);
+      childList.forEach(el => preOrder(el))
+    }else{
+      let _tagName = node.tagName.toLowerCase();
+        if(_tagName == 'div' || _tagName == 'p' || _tagName == 'span'){
+            let _text = node.innerText;
+            var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
+
+            _text = _text.replace(regExp,""); //특수문자 제거(? ! . 는 살려두고)
+            _text = _text.replace(/(\t)/g, ""); // 탭 제거
+
+            if(_text.split(' ').length > 3){
+                list.push(_text);
+            }
+        }
+    }
+  }
+
+const body = document.querySelector('body');
+preOrder(body,1);
+list
 }
