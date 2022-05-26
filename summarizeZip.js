@@ -1,4 +1,142 @@
 (() => {
+  let summarizeResult;
+
+  const isSummarizePossible = text => {
+    const reg = /[^a-zA-Z,. ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g;
+    const pureContent = text.replace(reg, '');
+    if (pureContent.length < 2000 && pureContent.length > 200) {
+      return true;
+    }
+    return false;
+  };
+
+  const pythonSummary = async () => {
+    const { href: url } = window.location;
+    const postData = { url };
+
+    try {
+      const res = await fetch('http://localhost:3000/python', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
+      if (!res.ok) throw new Error('res ok 문제 발생');
+      return await res.json();
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
+  const translate = async pythonResult => {
+    const postData = {
+      text: pythonResult,
+    };
+    try {
+      const res = await fetch('http://localhost:3000/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(postData),
+      });
+      if (!res.ok) throw new Error('res ok 문제 발생');
+      return await res.json();
+    } catch (error) {
+      throw new Error(error);
+    }
+  };
+
+  const checkLanguage = pythonResult => {
+    let koScore = 0;
+    let enScore = 0;
+    let englishSum = 0;
+    let hangulSum = 0;
+
+    const { lang } = document.documentElement;
+    const contextLength = pythonResult.length;
+
+    if (lang === 'ko') {
+      koScore += 30;
+    } else if (lang === 'en') {
+      enScore += 30;
+    }
+
+    const englishFilter = /[a-zA-Z]/;
+    const hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
+
+    for (let i = 0; i < contextLength; i++) {
+      if (pythonResult[i].match(englishFilter)) {
+        englishSum += 1;
+      } else if (pythonResult[i].match(hangulFilter)) {
+        hangulSum += 1;
+      }
+    }
+    const contextSum = hangulSum + englishSum;
+    const hangulRatio = (hangulSum / contextSum) * 70;
+    const englishRatio = (englishSum / contextSum) * 70;
+
+    if (koScore + hangulRatio > enScore + englishRatio) {
+      // 한글
+      return 1;
+    }
+    // 영어
+    return 0;
+  };
+
+  // 전체 요약
+  const fullSummary = async () => {
+    // nodejs로 번역 보내는 텍스트
+    let sendText;
+
+    const pythonResult = await pythonSummary();
+
+    // 한글
+    if (checkLanguage(pythonResult)) {
+      sendText = pythonResult;
+    } // 영어
+    else {
+      sendText = await translate(pythonResult);
+    }
+
+    if (isSummarizePossible(sendText)) {
+      const title = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
+      const bodyData = { title, content: sendText };
+      try {
+        const res = await fetch('http://localhost:3000/api/summarize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(bodyData),
+        });
+        const data = await res.json();
+
+        const splitData = data.summary.split('\n');
+        const summarizedMessage = `
+          <li style="line-height: 20px;">${splitData[0] ? splitData[0] : ''}</li>
+          <li style="line-height: 20px;">${splitData[1] ? splitData[1] : ''}</li>
+          <li style="line-height: 20px;">${splitData[2] ? splitData[2] : ''}</li>
+          `;
+
+        chrome.storage.local.set({
+          summaryResult: summarizedMessage,
+          isSummaryPossible: true,
+        });
+
+        return summarizedMessage;
+      } catch (error) {
+        throw new Error(error);
+      }
+    } else {
+      chrome.storage.local.set({
+        isSummaryPossible: false,
+      });
+      return false;
+    }
+  };
+
   // DOM 가져오는 util 함수
   const $ = selector => document.querySelector(selector);
 
@@ -6,8 +144,8 @@
   const $summarizeZip = $('summarize-zip');
   const $summarizeZipWrapper = $summarizeZip.shadowRoot.getElementById('summarizeZipWrapper');
   const $html = document.documentElement;
-  const titleCandidate1 = document.body.querySelector('h1')?.textContent.trim();
-  const titleCandidate2 = document.body.querySelector('h2')?.textContent.trim();
+  const titleCandidate1 = document.body.querySelector('h1')?.textContent.trim().replace(/"/g, "'");
+  const titleCandidate2 = document.body.querySelector('h2')?.textContent.trim().replace(/"/g, "'");
 
   const prepareLayout = () => {
     $html.setAttribute('data-summarizeZip-active', 'true');
@@ -16,47 +154,16 @@
     const $summarizeAlarm = $('summarize-zip-alarm');
 
     if ($summarizeAlarm) {
-      $html.removeChild($summarizeAlarm);
-    }
-  };
-
-  const textFilter = () => {
-    const numberFilter = /[0-9]/;
-    const englishFilter = /[a-zA-Z]/;
-    const hangulFilter = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/;
-    const specialFilter = /[~!@#\#$%<>^&*]/;
-
-    let numberSum = 0;
-    let englishSum = 0;
-    let hangulSum = 0;
-    let specialSum = 0;
-
-    const newsText = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
-    for (let i = 0; i < newsText.length; i++) {
-      if (newsText[i].match(numberFilter)) {
-        numberSum += 1;
-      } else if (newsText[i].match(englishFilter)) {
-        englishSum += 1;
-      } else if (newsText[i].match(hangulFilter)) {
-        hangulSum += 1;
-      } else if (newsText[i].match(specialFilter)) {
-        specialSum += 1;
-      }
-    }
-
-    if (hangulSum > englishSum) {
-      alert('한글로 번역');
-    } else {
-      alert('영어로 번역');
+      setTimeout(() => {
+        $html.removeChild($summarizeAlarm);
+      }, 1000);
     }
   };
 
   class SuccessUI extends HTMLElement {
     connectedCallback() {
-      const mainTitle = document.querySelector("meta[property='og:title']")?.getAttribute('content');
+      const mainTitle = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
       const mainImgSrc = document.querySelector("meta[property='og:image']")?.getAttribute('content');
-
-      // TODO: 요약후 완료된 결과값을 totalSummarizeResult에 넣어주기
 
       this.innerHTML = `
       <img class="mainImg" src=${
@@ -68,9 +175,7 @@
       </div>
       <h2 class="summarizeTitle">${mainTitle}</h2>
         <ul class="totalSummarizeResult">
-          <li>안녕하니악ㅇ나린ㅇ란fsdfsfdsfdsfdsfㄹㅇㄴㄹㄴㅇㄹㄴㅇㄹㅇㄹㄴㄹㄴㅇㄹㅇㄴㄹㅇㄴㄹ</li>
-          <li>안녕하니악ㅇ나린ㅇ란</li>
-          <li>안녕하니악ㅇ나린ㅇ란</li>
+        ${summarizeResult}
         </ul>
       <button class="totalSentenceButton">문단 요약</button>
       `;
@@ -154,7 +259,7 @@
           .filter(el => el.length > 2);
 
         const content = textArr.join('');
-        const title = document.querySelector("meta[property='og:title']")?.getAttribute('content');
+        const title = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
 
         const $summarizeResult = this.querySelector('.summarizeResult');
 
@@ -201,18 +306,32 @@
         }
       };
 
-      // TODO: 버튼 이벤트 필요
+      this.querySelector('.totalSummarize').addEventListener('click', this.handleClick.bind(this));
     }
 
     disconnectedCallback() {
       document.body.onmouseover = null;
       document.body.onmouseout = null;
       document.body.onclick = null;
+      this.querySelector('.totalSummarize').removeEventListener('click', this.handleClick.bind(this));
+    }
+
+    handleClick() {
+      this.parentNode.removeChild(this);
+      chrome.storage.local.get(['isSummaryPossible'], data => {
+        if (data.isSummaryPossible) {
+          getSuccessUI();
+        } else {
+          getFailureUI();
+        }
+      });
     }
   }
 
-  const getSuccessUI = () => {
+  const getSuccessUI = async () => {
     const $summarySuccess = $summarizeZipWrapper.querySelector('.successUI');
+
+    if (summarizeResult === null) summarizeResult = await fullSummary();
 
     if (!$summarySuccess)
       $summarizeZipWrapper.insertAdjacentHTML('beforeend', '<summary-success class="successUI"></summary-success>');
@@ -241,142 +360,31 @@
     if (!customElements.get('summary-paragraph')) customElements.define('summary-paragraph', ParagraphUI);
   };
 
-  chrome.storage.local.get(['isOpen'], data => {
-    if (data.isOpen) {
-      console.log('ho');
+  chrome.storage.local.get(null, async data => {
+    const { isOpen, isSummaryPossible, isthroughToast, summaryResult } = data;
+
+    console.log('isOpen:', isOpen);
+    console.log('isSummaryPossible:', isSummaryPossible);
+    console.log('isthroughToast:', isthroughToast);
+
+    summarizeResult = summaryResult;
+
+    // 토스트를 통과했다면 summaryPossible을 사용할 수 있음
+    if (isthroughToast) {
+      if (isSummaryPossible) {
+        getSuccessUI();
+      } else {
+        getFailureUI();
+      }
+      // 토스트를 통과하지 않았다면 summary가 가능한지 판단해야함
     } else {
-      console.log('hi');
-      // getFailureUI();
-      getSuccessUI();
+      if (summarizeResult === null) summarizeResult = await fullSummary();
+
+      if (summarizeResult) {
+        getSuccessUI();
+      } else {
+        getFailureUI();
+      }
     }
   });
 })();
-
-// (() => {
-//   let s = '';
-//   let summarizedMessage = '';
-
-//   const summary1 = async () => {
-// textFilter();
-// const text = document.querySelector('#dic_area').textContent.trim().replace(/\n/g, '');
-// console.log(text);
-// const bodyData = { content: text };
-// try {
-//   const res = await fetch('http://localhost:3000/api/summarize', {
-//     method: 'POST',
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify(bodyData),
-//   });
-
-//   const data = await res.json();
-//   let summaryData = data.summary;
-//   summaryData = summaryData.split('\n');
-//   summaryData.forEach((a, i) => {
-//     summarizedMessage += `${i + 1} ${a}` + '\n';
-//   });
-//   s = summarizedMessage;
-//   console.log(s);
-//   chrome.storage.local.set(
-//     {
-//       key: summarizedMessage,
-//     },
-//     () => {}
-//   );
-// } catch (error) {
-//   throw new Error(error);
-// }
-//   };
-
-//   // 익스텐션 클릭시 왼쪽 화면에서 나옴
-//   const getWidget = () => {
-//     let sum = '';
-
-//     summary1();
-
-//     chrome.storage.local.get(['key'], result => {
-//       const imageSrc = document.querySelector("meta[property='og:image']").getAttribute('content');
-//       let image = ``;
-
-//       sum += result.key;
-//       const sum1 = sum.split('.');
-
-//       const $html = document.documentElement;
-//       $html.setAttribute('data-summarizeZip-active', 'true');
-
-//       // const titles = document.body.querySelector('h1');
-//       const titleCandidate1 = document.body.querySelector('h1')?.textContent.trim();
-//       const titleCandidate2 = document.body.querySelector('h2')?.textContent.trim();
-
-//       let title = '';
-
-//       const $div = document.createElement('div');
-//       $div.setAttribute('id', 'summarizeZipWrapper');
-
-//       let template = ``;
-//       let alarmMessage = '';
-//       if (!summarizeFail) {
-//         alarmMessage = '요약을 할 수 없습니다 :(';
-//       } else {
-//         if (titleCandidate1) {
-//           title = titleCandidate1;
-//         } else {
-//           title = titleCandidate2;
-//         }
-//         alarmMessage = '요약된 결과를 확인하세요!';
-//         if (imageSrc) {
-//           image = `<img
-//           class = "siteImg"
-//           src= ${imageSrc}
-//           width="200px"
-//           height="200px"
-//           style="object-fit:contain"
-//         />`;
-//         } else {
-//           image = null;
-//         }
-//       }
-//       template = `
-//     <button class="closeButton" aria-label="닫기">
-//     <img
-//       src="https://user-images.githubusercontent.com/53992007/166632199-9962060b-7681-4aca-8fac-db72a8063853.png"
-//       alt="닫기"
-//       width="20"
-//       height="20"
-//     />
-//     </button>
-//     ${image || ''}
-//     <div class="successUI"></div>
-//     <div class="failureUI"></div>
-//     <div class="paragraphSummarize">
-//       <div class="mainSection">
-//         <div class="imageContainer">
-//           <img src="https://user-images.githubusercontent.com/53992007/166511131-eac4ed0d-0225-4ed1-8bc5-30221f5e5f91.png" alt="summarizeZip" width="40" />
-
-//         </div>
-//         <h2 class="alarm">${alarmMessage}</h2>
-//         <h2 class="pageTitle">${title}</h2>
-//         <div class="summarizeArea">
-//         ${
-//           summarizeFail
-//             ? ` <ul class="summarizeResult">
-//         <h5 class="summarizeText">${sum1[0]}</h5>
-//         <h5 class="summarizeText">${sum1[1]}</h5>
-//         <h5 class="summarizeText">${sum1[2]}</h5>
-//         <h5>${s}</h5>
-//         </ul>`
-//             : ''
-//         }
-
-//         </div>
-//         <button class="totalSummarize">문단 요약</button>
-//       </div>
-//     </div>
-//     `;
-
-//       $div.insertAdjacentHTML('afterbegin', template);
-
-//       document.body.insertAdjacentElement('beforebegin', $div);
-
-// })();
