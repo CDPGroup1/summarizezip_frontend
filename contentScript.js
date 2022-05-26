@@ -462,7 +462,9 @@ window.addEventListener('load', () => {
     urlQuery = fullUrl.split('/');
     keyUrl = urlQuery[0] + '/' + urlQuery[1];
 
-    return (keyUrl in whiteList);
+    if(whiteList[keyUrl] == undefined){
+      return false;
+    }else return true;
   }
 
   function isPopUpToast1(){ 
@@ -479,7 +481,7 @@ window.addEventListener('load', () => {
       htmlList.forEach(element => element.remove());
     });
 
-    let bodyText = doc.body.innerText;
+    let bodyText = doc.getElementsByTagName('body')[0].innerText;
 
     var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
 
@@ -505,8 +507,7 @@ window.addEventListener('load', () => {
       htmlList.forEach(element => element.remove());
     });
 
-
-    let bodyText = doc.body.innerText;
+    let bodyText = doc.getElementsByTagName('body')[0].innerText;
 
     var regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
 
@@ -524,7 +525,7 @@ window.addEventListener('load', () => {
         let splitElement = element.split(/[.?!]/);
 
         splitElement.forEach(stc => {
-          if(stc.split(' ').length > 5){
+          if(stc.split(' ').length > 5 && stc.split(' ').length < stc.length/2){
             sentencenum++;
           }
         })
@@ -564,7 +565,7 @@ window.addEventListener('load', () => {
 
   customElements.define('summarize-zip-alarm', SummarizeZipAlarm);
   customElements.define('summarize-zip', SummarizeZip);
-  if(isPopUpToast0()){
+  if(isPopUpToast2()){
     customElements.define('summarize-zip-toast', Toast);
   }
   
