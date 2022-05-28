@@ -9,62 +9,25 @@ window.addEventListener('load', () => {
   });
 
   const isToastNecessary = () => {
-    // 불필요한 태그 제거 후 body의 innerText에서 정상적인 문장들의 개수를 새어 본문의 존재를 확인하는 방식
-    // 구글 검색창에서도 작동하는 문제가 있음, 문장의 개수를 조금 더 보수적으로 잡아볼까 고민중
+    const scheme = window.location.href.replace(/https:\/\//, '');
 
-    const doc = document.querySelector('html').cloneNode(true);
-
-    unneccesaryTags = [
-      'script',
-      'style',
-      'head',
-      'footer',
-      'header',
-      'link',
-      'iframe',
-      'a',
-      'em',
-      'button',
-      'image',
-      'svg',
-      'video',
+    const whiteList = [
+      'n.news.naver.com/mnews/article',
+      'v.daum.net/v',
+      '/article',
+      '/news',
+      /velog.io\/@.+\//,
+      /tistory.com\/.+/,
+      /wikipedia.org\/wiki\/.+/,
+      /namu.wiki\/w\/.+/,
     ];
 
-    unneccesaryTags.forEach(el => {
-      htmlTag = doc.getElementsByTagName(el);
-      htmlList = Array.from(htmlTag);
-      htmlList.forEach(element => element.remove());
-    });
-
-    let bodyText = doc.getElementsByTagName('body')[0].innerText;
-
-    const regExp = /[\{\}\[\]\/,;:|\)*~`^\-+<>@\#$%&\\\=\(\'\"]/gi;
-
-    bodyText = bodyText.replace(regExp, ''); // 특수문자 제거(? ! . 는 살려두고)
-    bodyText = bodyText.replace(/(\t)/g, ''); // 탭 제거
-
-    const bodyTextSplit = bodyText.split('\n');
-    let sentencenum = 0;
-
-    bodyTextSplit.forEach(element => {
-      const lastElement = element.charAt(element.length - 1);
-      const wordnum = element.split(' ').length;
-
-      if ((lastElement === '.' || lastElement === '?' || lastElement === '!' || element.length > 300) && wordnum > 5) {
-        const splitElement = element.split(/[.?!]/);
-
-        splitElement.forEach(stc => {
-          if (stc.split(' ').length > 5 && stc.split(' ').length < stc.length / 2) {
-            sentencenum++;
-          }
-        });
+    for (const url of whiteList) {
+      if (scheme.match(url)) {
+        return true;
       }
-    });
-
-    // 이 sentencenum(문장의 개수)의 개수에 따라 true false를 결정
-    if (sentencenum > 30) {
-      return true;
     }
+
     return false;
   };
 
