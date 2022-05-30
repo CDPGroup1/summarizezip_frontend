@@ -335,6 +335,7 @@ window.addEventListener('load', () => {
     .summarizeTitle {
       margin-top: 40px;
       font-size: 20px;
+      line-height: 1.2;
     }
     
     .totalSummarizeResult {

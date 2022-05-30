@@ -97,8 +97,16 @@
       sendText = pythonResult;
     } // 영어
     else {
-      sendText = await translate(pythonResult);
+      try {
+        const { translateText } = await translate(pythonResult);
+        console.log(translateText);
+        sendText = translateText;
+      } catch (error) {
+        throw new Error(error);
+      }
     }
+
+    console.log(sendText);
 
     if (isSummarizePossible(sendText)) {
       const title = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
