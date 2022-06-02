@@ -3,6 +3,7 @@
 
   const isSummarizePossible = text => {
     const reg = /[^a-zA-Z,. ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/g;
+    console.log(text);
     const pureContent = text.replace(reg, '');
     if (pureContent.length < 2000 && pureContent.length > 200) {
       return true;
@@ -98,15 +99,12 @@
     } // 영어
     else {
       try {
-        const { translateText } = await translate(pythonResult);
-        console.log(translateText);
-        sendText = translateText;
+        const data = await translate(pythonResult);
+        sendText = data.translatedText;
       } catch (error) {
         throw new Error(error);
       }
     }
-
-    console.log(sendText);
 
     if (isSummarizePossible(sendText)) {
       const title = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
@@ -266,7 +264,17 @@
           .split('\n')
           .filter(el => el.length > 2);
 
-        const content = textArr.join('');
+        let content = textArr.join('');
+
+        if (!checkLanguage(content)) {
+          try {
+            const data = await translate(content);
+            content = data.translatedText;
+          } catch (error) {
+            throw new Error(error);
+          }
+        }
+
         const title = document.querySelector("meta[property='og:title']")?.getAttribute('content').replace(/"/g, "'");
 
         const $summarizeResult = this.querySelector('.summarizeResult');
@@ -341,10 +349,13 @@
 
     if (summarizeResult === null) summarizeResult = await fullSummary();
 
-    if (!$summarySuccess)
+    if (!$summarySuccess) {
       $summarizeZipWrapper.insertAdjacentHTML('beforeend', '<summary-success class="successUI"></summary-success>');
+    }
 
-    if (!customElements.get('summary-success')) customElements.define('summary-success', SuccessUI);
+    if (!customElements.get('summary-success')) {
+      customElements.define('summary-success', SuccessUI);
+    }
   };
 
   const getFailureUI = () => {
@@ -375,11 +386,12 @@
     console.log('isSummaryPossible:', isSummaryPossible);
     console.log('isthroughToast:', isthroughToast);
 
-    summarizeResult = summaryResult;
+    summarizeResult = summaryResult || null;
 
     // 토스트를 통과했다면 summaryPossible을 사용할 수 있음
     if (isthroughToast) {
       if (isSummaryPossible) {
+        console.log(summarizeResult);
         getSuccessUI();
       } else {
         getFailureUI();

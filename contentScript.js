@@ -1,12 +1,12 @@
+chrome.storage.local.set({
+  isOpen: false,
+  isthroughToast: false,
+  summaryResult: null,
+});
+
 window.addEventListener('load', () => {
   document.body.insertAdjacentHTML('beforebegin', `<summarize-zip-alarm></summarize-zip-alarm>`);
   document.body.insertAdjacentHTML('beforebegin', `<summarize-zip></summarize-zip>`);
-
-  chrome.storage.local.set({
-    isOpen: false,
-    isthroughToast: false,
-    summaryResult: null,
-  });
 
   const isToastNecessary = () => {
     const scheme = window.location.href.replace(/https:\/\//, '');
